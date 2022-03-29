@@ -9,7 +9,7 @@ export class Environment {
 
     private static instance: Environment = new Environment
 
-    private envEnum: Env
+    private envEnum: Env = Env.DEV
 
     private env: any
 

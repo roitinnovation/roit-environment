@@ -82,7 +82,7 @@
         "signature": "bbe2107a96f15b2cfebcfebfc8933619cb285c43bf1ef6946f78fd92b2de6893"
       },
       "../src/Environment.ts": {
-        "version": "d511bac43e17db592bfb9977e691b095243fdc2e9262e87b1f6a79fcb994d290",
+        "version": "fb670fb0f582173ac0e77ce3b9b9acf0407513c7168e389e7be133aeeb1cac4e",
         "signature": "974fce8bc660d93085cef6054cb27e09f26550ddc9186eddafe963312d59a137"
       },
       "../src/index.ts": {
@@ -108,6 +108,18 @@
       "../node_modules/@types/node/ts3.2/index.d.ts": {
         "version": "7a95111cb1bbffdea6d5911e2ad268cc125823ade5bf4910017304f7c2cab692",
         "signature": "7a95111cb1bbffdea6d5911e2ad268cc125823ade5bf4910017304f7c2cab692"
+      },
+      "../../../node_modules/@types/sinonjs__fake-timers/index.d.ts": {
+        "version": "550650516d34048712520ffb1fce4a02f2d837761ee45c7d9868a7a35e7b0343",
+        "signature": "550650516d34048712520ffb1fce4a02f2d837761ee45c7d9868a7a35e7b0343"
+      },
+      "../../../node_modules/@types/sizzle/index.d.ts": {
+        "version": "ec89427601297d439c961528832a75017d9356bec2ee42c1d16f2274590d9330",
+        "signature": "ec89427601297d439c961528832a75017d9356bec2ee42c1d16f2274590d9330"
+      },
+      "../../../node_modules/@types/yauzl/index.d.ts": {
+        "version": "b2d70a269840a9528db473ac7565442434333a05c1f66801a7a672e82beb903e",
+        "signature": "b2d70a269840a9528db473ac7565442434333a05c1f66801a7a672e82beb903e"
       }
     },
     "options": {
@@ -149,6 +161,10 @@
       ],
       "../node_modules/@types/node/ts3.2/index.d.ts": [
         "../node_modules/@types/node/base.d.ts"
+      ],
+      "../../../node_modules/@types/yauzl/index.d.ts": [
+        "../node_modules/@types/node/base.d.ts",
+        "../node_modules/@types/node/ts3.2/index.d.ts"
       ]
     },
     "exportedModulesMap": {
@@ -169,6 +185,10 @@
       ],
       "../node_modules/@types/node/ts3.2/index.d.ts": [
         "../node_modules/@types/node/base.d.ts"
+      ],
+      "../../../node_modules/@types/yauzl/index.d.ts": [
+        "../node_modules/@types/node/base.d.ts",
+        "../node_modules/@types/node/ts3.2/index.d.ts"
       ]
     },
     "semanticDiagnosticsPerFile": [
@@ -188,17 +208,20 @@
       "../node_modules/typescript/lib/lib.es2015.reflect.d.ts",
       "../node_modules/typescript/lib/lib.es2015.symbol.d.ts",
       "../node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts",
+      "../src/Env.ts",
       "../node_modules/@types/dot-object/index.d.ts",
       "../node_modules/chalk/types/index.d.ts",
       "../node_modules/@types/yamljs/index.d.ts",
+      "../src/index.ts",
+      "../src/EnvOptions.ts",
       "../node_modules/@types/chai/index.d.ts",
       "../node_modules/@types/mocha/index.d.ts",
       "../node_modules/@types/node/base.d.ts",
       "../node_modules/@types/node/ts3.2/index.d.ts",
-      "../src/Env.ts",
-      "../src/index.ts",
       "../src/Environment.ts",
-      "../src/EnvOptions.ts"
+      "../../../node_modules/@types/sinonjs__fake-timers/index.d.ts",
+      "../../../node_modules/@types/sizzle/index.d.ts",
+      "../../../node_modules/@types/yauzl/index.d.ts"
     ]
   },
   "version": "3.7.4"

@@ -7,6 +7,7 @@ const fs = require("fs");
 const YAML = require("yamljs");
 class Environment {
     constructor() {
+        this.envEnum = Env_1.Env.DEV;
         this.startup();
     }
     static envOptions(options) {
