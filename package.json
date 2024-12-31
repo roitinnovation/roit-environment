@@ -1,6 +1,6 @@
 {
-  "name": "roit-environment",
-  "version": "1.1.4",
+  "name": "@roit/roit-environment",
+  "version": "1.1.1",
   "main": "dist/index.js",
   "types": "src/index.ts",
   "scripts": {
@@ -14,17 +14,17 @@
   "devDependencies": {
     "@types/chai": "^4.2.0",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^6.0.46",
-    "typescript": "3.7.4",
-    "ts-node": "^8.3.0",
+    "@types/node": "^22.10.2",
     "chai": "^4.2.0",
-    "mocha": "^6.2.0"
+    "mocha": "^6.2.0",
+    "ts-node": "^8.3.0"
   },
   "dependencies": {
     "@types/dot-object": "2.1.1",
     "@types/yamljs": "0.2.31",
     "chalk": "^2.4.2",
     "dot-object": "^1.9.0",
+    "typescript": "^5.7.2",
     "yamljs": "^0.3.0"
   },
   "keywords": [

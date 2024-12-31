@@ -6,217 +6,241 @@ import * as fs from "fs"
 import * as YAML from "yamljs"
 
 export class Environment {
-
     private static instance: Environment = new Environment
-
     private envEnum: Env = Env.DEV
-
     private env: any
-
     private option?: EnvOptions
 
     private constructor() {
-        this.startup()
+        this.loadEnvironment()
     }
 
     static envOptions(options?: EnvOptions) {
         this.instance.option = options
-        this.instance.startup()
+        this.instance.loadEnvironment()
     }
 
     private static getInstance(): Environment {
-        return this.instance;
+        return this.instance
     }
 
     static addProperty(key: string, value: any, setInEnv: boolean = true): void {
         if (setInEnv) {
-            this.getInstance().env[this.getInstance().envEnum] = this.getValueDot(this.getInstance().env[this.getInstance().envEnum], key, value)
+            const currentEnvVars = this.getInstance().env[this.getInstance().envEnum]
+            this.getInstance().env[this.getInstance().envEnum] = this.createDotNotationObject(currentEnvVars, key, value)
         }
 
-        this.getInstance().env = this.getValueDot(this.getInstance().env, key, value)
+        this.getInstance().env = this.createDotNotationObject(this.getInstance().env, key, value)
+        this.getInstance().loadEnvVariables()
     }
 
-    private static getValueDot(objectRef: any, key: string, value: any) {
-        let object = objectRef ? objectRef : {}
-        if (key.indexOf(".") == -1) {
+    private static createDotNotationObject(objectRef: any, key: string, value: any) {
+        const object = objectRef || {}
+        if (!key.includes(".")) {
             object[key] = value
             return object
         }
-        return dotRef.str(key, value, object);
+        return dotRef.str(key, value, object)
     }
 
-    /**
-     * Get property from file (env.yaml) create in root path.
-     * See more in https://www.npmjs.com/package/roit-environment
-     * @param key 
-     */
-    static getProperty(key: string): string {
-        const value = this.property(key)
+    private static getEnvValue(key: string) {
+        const envValue = this.getValueFromCurrentEnv(key)
+        if (envValue) return envValue
 
-        if (value) {
-            return value
-        }
-
-        // Check levels
-        const finding = this.finding(key)
-
-        if (finding) {
-            return this.getRelativePath(finding.levels, finding.key)
-        }
-
-        /* 
-         * TODO we can type the return of this method as `string | undefined`.
-         * But it will be a major (breaking) change for the projects that use this library
-         */
-        return ''
+        return this.getValueFromGlobalEnv(key)
     }
 
-    /**
-     * Get property from OS System Property
-     * @param key
-     */
-    static systemProperty(key: string) {
-        return process.env[key]
-    }
-
-    private static property(key: string) {
+    private static getValueFromCurrentEnv(key: string) {
         try {
-            let value = dotRef.pick(key, this.getInstance().env[this.getInstance().envEnum])
-            if (value) {
-                return value
-            }
-            // Check attr without env
-            value = dotRef.pick(key, this.getInstance().env)
-            if (value) {
-                return value
-            }
-            return null
-        } catch (e) {
-            return null;
-        }
-    }
-
-    private static finding(key: string) {
-
-        if (!this.getInstance().env) {
+            return dotRef.pick(key, this.getInstance().env[this.getInstance().envEnum])
+        } catch {
             return null
         }
-
-        const filterCondition = (k: any) =>
-            k.indexOf(key) > -1 && k.indexOf("{") > -1 && k.indexOf("}") > -1
-
-        const envNum = this.getInstance().env[this.getInstance().envEnum]
-        const result = envNum
-            ? Object.keys(envNum).filter(filterCondition)
-            : []
-
-        let parts = []
-
-        if (result.length) {
-            parts = result
-        } else {
-            parts = Object.keys(this.getInstance().env).filter(filterCondition)
-        }
-
-        if (parts.length > 0) {
-            let partsRef = parts[0].split("{")
-            return {
-                key: parts[0],
-                levels: Number(partsRef[1].replace("}", ""))
-            }
-        }
-
-        return null
     }
 
-    /**
-     * Verify env current eq
-     * @param env 
-     */
-    static acceptedEnv(...args: Env[]): boolean {
-        return args.filter(ar => ar == this.getInstance().envEnum).length > 0
-
+    private static getValueFromGlobalEnv(key: string) {
+        try {
+            return dotRef.pick(key, this.getInstance().env)
+        } catch {
+            return null
+        }
     }
 
-    /**
-     * Get current env
-     */
+    static acceptedEnv(...environments: Env[]): boolean {
+        return environments.includes(this.getInstance().envEnum)
+    }
+
     static currentEnv(): Env {
         return this.getInstance().envEnum
     }
 
-    /**
-     * Get property with relative path
-     * @param subs 
-     * @param key 
-     */
-    static getRelativePath(subs: number, key: string): string {
-        let property: string = this.property(key)
-        if (!property) {
-            return property
+    private loadEnvironment() {
+        this.setEnvironmentType()
+        this.loadYamlFile()
+        this.handlePropertyOverride()
+    }
+
+    private setEnvironmentType() {
+        if (this.option?.manuallyEnv) {
+            this.envEnum = this.option.manuallyEnv
+            return
         }
 
-        let stringBuilder: string = ''
+        const envKey = this.option?.keyPropertyEnv || 'ENV'
+        this.envEnum = (process.env[envKey] as Env) || Env.DEV
+        
+        console.log(chalk.green(`Environment ${chalk.magentaBright(this.envEnum)} selected!`))
+    }
 
-        if (subs == 0) {
-            stringBuilder = './'
-        } else {
-            for (let i = 0; i < subs; i++) {
-                stringBuilder = `${stringBuilder}../`
+    private loadYamlFile() {
+        const yamlFileName = this.option?.fileYamlName || 'env.yaml'
+
+        try {
+            this.env = YAML.parse(fs.readFileSync(yamlFileName).toString())
+            this.loadEnvVariables()
+        } catch (error: any) {
+            this.handleYamlError(error, yamlFileName)
+        }
+    }
+
+    private handleYamlError(error: any, fileName: string) {
+        if (error.name === "YAMLException") {
+            console.log(chalk.red(`Error in load file yaml (${fileName})`))
+            console.log(chalk.red(`Reason ${error.reason}`))
+            console.log(chalk.red(`Message: ${error.message}`))
+            return
+        }
+        
+        if (error.code === 'ENOENT') {
+            console.log(chalk.red(`File (${fileName}) not found error`))
+            console.log(chalk.red(`Path ${error.path}`))
+            return
+        }
+
+        console.log(chalk.red(`Error in load file yaml`))
+        console.log(chalk.red(error))
+    }
+
+    private handlePropertyOverride() {
+        if (!process.env.PROPERTY) return
+
+        const [key, value] = process.env.PROPERTY.split(":")
+        if (value) {
+            this.env[key] = value
+            process.env[key] = value
+        }
+    }
+
+    private loadEnvVariables() {
+        const currentEnvVars = this.env[this.envEnum]
+        if (currentEnvVars) {
+            this.processEnvironmentVariables(currentEnvVars, '')
+        }
+        
+        const globalVars = {...this.env}
+        delete globalVars[this.envEnum]
+        this.processEnvironmentVariables(globalVars, '')
+    }
+
+    private processEnvironmentVariables(obj: any, prefix: string) {
+        Object.entries(obj).forEach(([key, value]) => {
+            const fullKey = prefix ? `${prefix}.${key}` : key
+
+            if (this.isObject(value)) {
+                this.processEnvironmentVariables(value, fullKey)
+                return
             }
+
+            if (this.isLeveledKey(key)) {
+                this.processLeveledVariable(key, value as string)
+                return
+            }
+
+            this.setEnvironmentVariable(fullKey, value)
+        })
+    }
+
+    private isObject(value: any): value is object {
+        return typeof value === 'object' && value !== null
+    }
+
+    private isLeveledKey(key: string): boolean {
+        return key.includes('{') && key.includes('}')
+    }
+
+    private processLeveledVariable(key: string, value: string) {
+        const [baseName] = key.split('{')
+        const levels = Number(key.split('{')[1].replace('}', ''))
+        const path = this.buildRelativePath(levels)
+        
+        process.env[baseName.toUpperCase()] = path + value
+    }
+
+    private buildRelativePath(levels: number): string {
+        if (levels === 0) return './'
+        return '../'.repeat(levels)
+    }
+
+    private setEnvironmentVariable(key: string, value: any) {
+        const envKey = key.toUpperCase().replace(/\./g, '_')
+        if (value) {
+            process.env[envKey] = value.toString()
+        }
+    }
+
+    static getProperty(key: string): string {
+        const leveledValue = this.findLeveledValue(key)
+        if (leveledValue) {
+            return this.getRelativePath(leveledValue.levels, leveledValue.key)
+        }
+        
+        const value = this.getEnvValue(key)
+        if (value) {
+            return value
         }
 
-        return `${stringBuilder}${property}`
+        const envKey = key.toUpperCase().replace(/\./g, '_')
+        return process.env[envKey] || ''
+    }
+
+    private static findLeveledValue(key: string) {
+        if (!this.getInstance().env) return null
+
+        const matchingKeys = this.findKeysWithLevel(key)
+        if (!matchingKeys.length) return null
+
+        const [keyWithLevel] = matchingKeys
+        const [_, levelPart] = keyWithLevel.split('{')
+        return {
+            key: keyWithLevel,
+            levels: Number(levelPart.replace('}', ''))
+        }
+    }
+
+    private static findKeysWithLevel(key: string): string[] {
+        const hasLevel = (k: string) => k.includes(key) && k.includes('{') && k.includes('}')
+        
+        const currentEnvKeys = Object.keys(this.getInstance().env[this.getInstance().envEnum] || {})
+        const matchingCurrentEnvKeys = currentEnvKeys.filter(hasLevel)
+        
+        if (matchingCurrentEnvKeys.length) return matchingCurrentEnvKeys
+        
+        return Object.keys(this.getInstance().env).filter(hasLevel)
+    }
+
+    static getRelativePath(levels: number, key: string): string {
+        const value = this.getEnvValue(key)
+        if (!value) return value
+
+        return this.buildRelativePath(levels) + value
+    }
+
+    private static buildRelativePath(levels: number): string {
+        if (levels === 0) return './'
+        return '../'.repeat(levels)
     }
 
     static reload() {
-        this.instance.startup()
-    }
-
-    private startup() {
-        if (this.option) {
-            console.log(chalk.grey(`Environment options detected..`))
-        }
-
-        if (this.option && this.option.manuallyEnv) {
-            this.envEnum = this.option.manuallyEnv
-        } else {
-            const envName = this.option && this.option.keyPropertyEnv
-                ? process.env[this.option.keyPropertyEnv]
-                : process.env.ENV
-            this.envEnum = envName
-                ? envName as Env
-                : Env.DEV
-        }
-
-        console.log(chalk.green(`Environment ${chalk.magentaBright(this.envEnum)} selected!`))
-
-        const yamlFileName = this.option && this.option.fileYamlName
-            ? this.option.fileYamlName
-            : 'env.yaml'
-
-        try {
-            this.env = YAML.parse(fs.readFileSync(yamlFileName.toString()).toString())
-        } catch (e) {
-            if (e.name === "YAMLException") {
-                console.log(chalk.red(`Error in load file yaml (${yamlFileName})`))
-                console.log(chalk.red(`Reason ${e.reason}`))
-                console.log(chalk.red(`Message: ${e.message}`))
-            } else if (e.code === 'ENOENT') {
-                console.log(chalk.red(`File (${yamlFileName}) not found error`))
-                console.log(chalk.red(`Path ${e.path}`))
-            } else {
-                console.log(chalk.red(`Error in load file yaml`))
-                console.log(chalk.red(e))
-            }
-        }
-
-        if (process.env.PROPERTY) {
-            const propert = process.env.PROPERTY.split(":")
-            if (propert.length == 2) {
-                console.log(`Seting node env PROPERTY`)
-                this.env[propert[0]] = propert[1]
-            }
-        }
+        this.instance.loadEnvironment()
     }
 }

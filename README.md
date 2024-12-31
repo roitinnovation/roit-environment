@@ -42,7 +42,7 @@ prod:
 
 ```javascript
 
-import { Environment, Env } from 'roit-environment';
+import { Environment, Env } from '@roit/roit-environment';
 
 Environment.getProperty("port") // output: 3000
 
@@ -64,6 +64,8 @@ Environment.getRelativePath(3, 'credential') // output: ../../../config/dev/foob
 // Childrens property 
 Environment.getProperty("pg.host") // output: 172.1.2.208
 Environment.getProperty("pg.pass.inner") // output: mysafepass
+process.env.PG_HOST // output: 172.1.2.208
+process.env.PG_PASS_INNER // output: mysafepass
 
 ```
 ### Env Options:
@@ -74,11 +76,12 @@ Environment.getProperty("pg.pass.inner") // output: mysafepass
 // manuallyEnv: set manual env
 // fileYamlName: especify file name for internal loading
 
-import { Environment } from 'roit-environment';
+import { Environment } from '@roit/roit-environment';
 
 Environment.envOptions({ manuallyEnv: Env.PROD, fileYamlName: 'foo.yaml' })
 
 Environment.getProperty("port") // output: 80 (port from env prod)
+process.env.PORT // output: 80 (port from env prod)
 
 ```
 
