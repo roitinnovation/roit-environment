@@ -8,9 +8,9 @@ describe('Environment tests', () => {
 
     Environment.envOptions({ manuallyEnv: Env.PROD })
 
-    const portProd = Environment.getProperty("port")
+    const portProd = process.env.PORT
 
-    expect(portProd).to.equal(80)
+    expect(portProd).to.equal("80")
     expect(Environment.currentEnv()).to.equal(Env.PROD)
 
     Environment.reload()
@@ -22,9 +22,10 @@ describe('Environment tests', () => {
 
     Environment.envOptions({ manuallyEnv: Env.HOM })
 
-    const portProd = Environment.getProperty("port")
+    const portProd = process.env.PORT
 
-    expect(portProd).to.equal(9001)
+    expect(portProd).to.equal("9001")
+    expect(Environment.getProperty('port')).to.equal(9001)
     expect(Environment.currentEnv()).to.equal(Env.HOM)
 
     Environment.envOptions()
@@ -33,13 +34,17 @@ describe('Environment tests', () => {
 
   it('Get attributes with children test', async () => {
 
-    const passInner = Environment.getProperty("pg.pass.inner")
-    const user = Environment.getProperty("pg.user")
-    const host = Environment.getProperty("pg.host")
+    const passInner = process.env.PG_PASS_INNER
+    const user = process.env.PG_USER
+    const host = process.env.PG_HOST
 
     expect(passInner).to.equal('mysafepass')
     expect(user).to.equal('myuserpg')
     expect(host).to.equal('172.1.2.208')
+
+    expect(Environment.getProperty('pg.pass.inner')).to.equal('mysafepass')
+    expect(Environment.getProperty('pg.user')).to.equal('myuserpg')
+    expect(Environment.getProperty('pg.host')).to.equal('172.1.2.208')
   });
 
   it('File not found test', async () => {
@@ -47,7 +52,6 @@ describe('Environment tests', () => {
     Environment.reload()
 
     Environment.envOptions({ fileYamlName: 'erro.yaml' })
-    Environment.getProperty("env")
     try {
 
     } catch (e) {
@@ -70,16 +74,17 @@ describe('Environment tests', () => {
 
     Environment.reload()
 
-    expect(Environment.getProperty("serviceName")).to.equal("Service A")
-    expect(Environment.getProperty("serviceInfo.version")).to.equal("1.0")
+    expect(process.env.SERVICENAME).to.equal("Service A")
+    expect(process.env.SERVICEINFO_VERSION).to.equal("1.0")
+    expect(Environment.getProperty('serviceName')).to.equal("Service A")
+    expect(Environment.getProperty('serviceInfo.version')).to.equal("1.0")
   });
 
 
   it('Attr levels', async () => {
-
     Environment.envOptions()
     Environment.reload()
-    expect(Environment.getProperty("credentialLevel")).to.equal("../../../foobar.json")
+    expect(process.env.CREDENTIALLEVEL).to.equal("../../../foobar.json")
   });
 
   it('Add property', async () => {
@@ -91,8 +96,10 @@ describe('Environment tests', () => {
     Environment.addProperty('bbbbb', 'AAA', false)
 
 
-    expect(Environment.getProperty("aaaaa")).to.equal(456)
-    expect(Environment.getProperty("bbbbb")).to.equal('AAA')
+    expect(process.env.AAAAA).to.equal('456')
+    expect(process.env.BBBBB).to.equal('AAA')
+    expect(Environment.getProperty('aaaaa')).to.equal(456)
+    expect(Environment.getProperty('bbbbb')).to.equal('AAA')
   });
 
   it('Add property objct', async () => {
@@ -104,9 +111,76 @@ describe('Environment tests', () => {
     Environment.addProperty('userInfo.name', 'Jhon')
     Environment.addProperty('userInfo.pass', 'AAA', false)
 
-    expect(Environment.getProperty("userInfo.user")).to.equal(456)
-    expect(Environment.getProperty("userInfo.name")).to.equal('Jhon')
-    expect(Environment.getProperty("userInfo.pass")).to.equal('AAA')
+    expect(process.env.USERINFO_USER).to.equal('456')
+    expect(process.env.USERINFO_NAME).to.equal('Jhon')
+    expect(process.env.USERINFO_PASS).to.equal('AAA')
+
+    expect(Environment.getProperty('userInfo.user')).to.equal(456)
+    expect(Environment.getProperty('userInfo.name')).to.equal('Jhon')
+    expect(Environment.getProperty('userInfo.pass')).to.equal('AAA')
   });
+
+  it('should handle nested objects correctly', async () => {
+    Environment.envOptions()
+    Environment.reload()
+
+    Environment.addProperty('database.credentials.user', 'admin')
+    Environment.addProperty('database.credentials.password', 'secret')
+    Environment.addProperty('database.host', 'localhost')
+
+    expect(Environment.getProperty('database.credentials.user')).to.equal('admin')
+    expect(Environment.getProperty('database.credentials.password')).to.equal('secret')
+    expect(Environment.getProperty('database.host')).to.equal('localhost')
+
+    expect(process.env.DATABASE_CREDENTIALS_USER).to.equal('admin')
+    expect(process.env.DATABASE_CREDENTIALS_PASSWORD).to.equal('secret')
+    expect(process.env.DATABASE_HOST).to.equal('localhost')
+  })
+
+  it('should handle multiple level indicators in environment', async () => {
+    Environment.envOptions()
+    Environment.reload()
+
+    Environment.addProperty('config{0}', 'local.json')
+    Environment.addProperty('assets{1}', 'images')
+    Environment.addProperty('libs{2}', 'external')
+
+    expect(Environment.getProperty('config')).to.equal('./local.json')
+    expect(Environment.getProperty('assets')).to.equal('../images')
+    expect(Environment.getProperty('libs')).to.equal('../../external')
+
+    expect(process.env.CONFIG).to.equal('./local.json')
+    expect(process.env.ASSETS).to.equal('../images')
+    expect(process.env.LIBS).to.equal('../../external')
+  })
+
+  it('should override environment specific variables with global ones', async () => {
+    Environment.envOptions({ manuallyEnv: Env.DEV })
+    Environment.reload()
+
+    Environment.addProperty('api.url', 'http://dev-api.com', true)
+    
+    Environment.addProperty('api.url', 'http://global-api.com', true)
+
+    expect(process.env.API_URL).to.equal('http://global-api.com')
+    expect(Environment.getProperty('api.url')).to.equal('http://global-api.com')
+  })
+
+  it('should handle type conversions correctly', async () => {
+    Environment.envOptions()
+    Environment.reload()
+
+    Environment.addProperty('server.port', 3000)
+    Environment.addProperty('features.enabled', true)
+    Environment.addProperty('app.version', 1.5)
+
+    expect(process.env.SERVER_PORT).to.equal('3000')
+    expect(process.env.FEATURES_ENABLED).to.equal('true')
+    expect(process.env.APP_VERSION).to.equal('1.5')
+
+    expect(Environment.getProperty('server.port')).to.equal(3000)
+    expect(Environment.getProperty('features.enabled')).to.equal(true)
+    expect(Environment.getProperty('app.version')).to.equal(1.5)
+  })
 
 });
