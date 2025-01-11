@@ -24,6 +24,14 @@ export class Environment {
         return this.instance
     }
 
+    /**
+     * Get property from OS System Property
+     * @param key
+     */
+    static systemProperty(key: string) {
+        return process.env[key]
+    }    
+
     static addProperty(key: string, value: any, setInEnv: boolean = true): void {
         if (setInEnv) {
             const currentEnvVars = this.getInstance().env[this.getInstance().envEnum]
@@ -48,7 +56,7 @@ export class Environment {
         if (envValue) return envValue
 
         return this.getValueFromGlobalEnv(key)
-    }
+    }   
 
     private static getValueFromCurrentEnv(key: string) {
         try {
